@@ -78,6 +78,8 @@ define(function (require, exports, module) {
     var _$currentCustomViewer = null;
     /** @type {?Object} view provider */
     var _currentViewProvider = null;
+    /** @type {?Object} view provider registry */
+    var _customViewerRegistry = {};
     
     /**
      * Currently focused Editor (full-size, inline, or otherwise)
@@ -687,12 +689,28 @@ define(function (require, exports, module) {
         return (_currentViewProvider && _currentlyViewedPath === fullPath);
     }
     
+    function registerCustomViewerProvider(lang, provider) {
+        _customViewerRegistry[lang] = provider;
+    }
+    
     /**
      * Update file name if necessary
      */
     function _onFileNameChange(e, oldName, newName) {
         if (_currentlyViewedPath === oldName) {
             _setCurrentlyViewedPath(newName);
+        }
+    }
+    
+    function _getCustomViewerForLang(lang) {
+        if (lang.getId() === "image") {
+            // TODO: Extensibility
+            // For now we only have the image viewer, so just return ImageViewer object.
+            // Once we have each viewer registers with EditorManager as a provider,
+            // then we return the provider registered with the language id.
+            return ImageViewer;
+        } else {
+            return _customViewerRegistry[lang.getId()];
         }
     }
 
@@ -705,12 +723,9 @@ define(function (require, exports, module) {
      */
     function getCustomViewerForPath(fullPath) {
         var lang = LanguageManager.getLanguageForPath(fullPath);
-        if (lang.getId() === "image") {
-            // TODO: Extensibility
-            // For now we only have the image viewer, so just return ImageViewer object.
-            // Once we have each viewer registers with EditorManager as a provider,
-            // then we return the provider registered with the language id.
-            return ImageViewer;
+        
+        if (lang) {
+            return _getCustomViewerForLang(lang);
         }
         
         return null;
@@ -1011,6 +1026,7 @@ define(function (require, exports, module) {
     exports.getInlineEditors              = getInlineEditors;
     exports.closeInlineWidget             = closeInlineWidget;
     exports.showCustomViewer              = showCustomViewer;
+    exports.registerCustomViewerProvider  = registerCustomViewerProvider;
     exports.getCustomViewerForPath        = getCustomViewerForPath;
     exports.notifyPathDeleted             = notifyPathDeleted;
     exports.closeCustomViewer             = closeCustomViewer;
