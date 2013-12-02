@@ -689,8 +689,12 @@ define(function (require, exports, module) {
         return (_currentViewProvider && _currentlyViewedPath === fullPath);
     }
     
-    function registerCustomViewerProvider(lang, provider) {
-        _customViewerRegistry[lang] = provider;
+    function registerCustomViewerProvider(langId, provider) {
+        if ( !_customViewerRegistry[langId]) {
+            _customViewerRegistry[langId] = provider;
+        } else {
+            console.error("There already is a custom viewer registered for language id  \"" + langId + "\"");
+        }
     }
     
     /**
@@ -703,15 +707,7 @@ define(function (require, exports, module) {
     }
     
     function _getCustomViewerForLang(lang) {
-        if (lang.getId() === "image") {
-            // TODO: Extensibility
-            // For now we only have the image viewer, so just return ImageViewer object.
-            // Once we have each viewer registers with EditorManager as a provider,
-            // then we return the provider registered with the language id.
-            return ImageViewer;
-        } else {
-            return _customViewerRegistry[lang.getId()];
-        }
+        return _customViewerRegistry[lang.getId()];
     }
 
     /** 
@@ -724,11 +720,7 @@ define(function (require, exports, module) {
     function getCustomViewerForPath(fullPath) {
         var lang = LanguageManager.getLanguageForPath(fullPath);
         
-        if (lang) {
-            return _getCustomViewerForLang(lang);
-        }
-        
-        return null;
+        return _customViewerRegistry[lang.getId()];
     }
     
     /** 
@@ -986,6 +978,8 @@ define(function (require, exports, module) {
         return _toggleInlineWidget(_inlineDocsProviders);
     });
     CommandManager.register(Strings.CMD_JUMPTO_DEFINITION, Commands.NAVIGATE_JUMPTO_DEFINITION, _doJumpToDef);
+    
+    registerCustomViewerProvider("image", ImageViewer);
     
     // Create PerfUtils measurement
     PerfUtils.createPerfMeasurement("JUMP_TO_DEFINITION", "Jump-To-Definiiton");
