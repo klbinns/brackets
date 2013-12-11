@@ -241,23 +241,29 @@ define(function (require, exports, module) {
     
     function _resetPermissionsOnSpecialTempFolders() {
         var i,
-            folders = [],
+            items = [],
             baseDir = getTempDirectory(),
             promise;
         
-        folders.push(baseDir + "/cant_read_here");
-        folders.push(baseDir + "/cant_write_here");
+        FileSystem.getDirectoryForPath(baseDir).visitAll(function (entry, path){
+			items.push(path);
+			// or items.push(baseDir + path);
+			console.log("Pushed: " + path);
+		});
         
-        promise = Async.doSequentially(folders, function (folder) {
+        //folders.push(baseDir + "/cant_read_here");
+        //folders.push(baseDir + "/cant_write_here");
+        
+        promise = Async.doSequentially(items, function (item) {
             var deferred = new $.Deferred();
             
-            FileSystem.resolve(folder, function (err, entry) {
+            FileSystem.resolve(item, function (err, entry) {
                 if (!err) {
-                    // Change permissions if the directory exists
-                    chmod(folder, "777").then(deferred.resolve, deferred.reject);
+                    // Change permissions if the item exists
+                    chmod(item, "777").then(deferred.resolve, deferred.reject);
                 } else {
                     if (err === FileSystemError.NOT_FOUND) {
-                        // Resolve the promise since the folder to reset doesn't exist
+                        // Resolve the promise since the item to reset doesn't exist
                         deferred.resolve();
                     } else {
                         deferred.reject();
