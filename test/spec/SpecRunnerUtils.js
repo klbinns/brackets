@@ -240,39 +240,48 @@ define(function (require, exports, module) {
     }
     
     function _resetPermissionsOnSpecialTempFolders() {
-        var i,
-            items = [],
+        var items = [],
             baseDir = getTempDirectory(),
             promise;
         
-        FileSystem.getDirectoryForPath(baseDir).visitAll(function (entry, path){
-			items.push(path);
-			// or items.push(baseDir + path);
-			console.log("Pushed: " + path);
-		});
-        
-        //folders.push(baseDir + "/cant_read_here");
-        //folders.push(baseDir + "/cant_write_here");
-        
-        promise = Async.doSequentially(items, function (item) {
-            var deferred = new $.Deferred();
-            
-            FileSystem.resolve(item, function (err, entry) {
-                if (!err) {
-                    // Change permissions if the item exists
-                    chmod(item, "777").then(deferred.resolve, deferred.reject);
-                } else {
-                    if (err === FileSystemError.NOT_FOUND) {
-                        // Resolve the promise since the item to reset doesn't exist
-                        deferred.resolve();
-                    } else {
-                        deferred.reject();
-                    }
-                }
-            });
-            
-            return deferred.promise();
-        }, true);
+	var deferred1 = new $.Deferred();
+	
+	var directory = FileSystem.getDirectoryForPath(baseDir + "/"),
+	    visitor = function (entry) {
+			items.push(entry.fullPath);
+			return true;
+		      };
+                
+	
+	directory.visit(visitor, function(err){
+	    console.log("done1");
+	    deferred1.resolve();
+	});
+     
+        //items.push(baseDir + "/cant_read_here");
+        //items.push(baseDir + "/cant_write_here");
+	console.log("done2");
+
+	promise = Async.doSequentially(items, function (item) {
+	    var deferred = new $.Deferred();
+		
+	    FileSystem.resolve(item, function (err, entry) {
+		if (!err) {
+		// Change permissions if the item exists
+		    chmod(item, "777").then(deferred.resolve, deferred.reject);
+		} else {
+		    if (err === FileSystemError.NOT_FOUND) {
+		    // Resolve the promise since the item to reset doesn't exist
+		    deferred.resolve();
+		    } else {
+		      deferred.reject();
+		    }
+		}
+	    });
+		
+	    return deferred.promise();
+	}, true);
+	
         
         return promise;
     }
