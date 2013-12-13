@@ -241,27 +241,68 @@ define(function (require, exports, module) {
     
     function _resetPermissionsOnSpecialTempFolders() {
         var items = [],
-            baseDir = getTempDirectory(),
-            promise;
-        
-	var deferred1 = new $.Deferred();
-	
-	var directory = FileSystem.getDirectoryForPath(baseDir + "/"),
-	    visitor = function (entry) {
-			items.push(entry.fullPath);
-			return true;
-		      };
+            baseDir = getTempDirectory();
+            
+	  
+		
+	var promise = _getAllFilesList(baseDir, function(i){
+	    items = i;
+	  
+	}).then(function(){
+	    	    
+	    Async.doSequentially(items, function (item) {
+		  console.log(item);
+		  FileSystem.resolve(item, function (err, entry) {
+		    if (!err) {
+		      console.log("K");
+		      console.log(item);
+		      console.log(entry);
+		      // Change permissions if the item exists
+			chmod(item, "777");
+		      } else {
+			 
+		      }
+		  });
+		  
+	      });
+	     
+	});
                 
 	
-	directory.visit(visitor, function(err){
-	    console.log("done1");
-	    deferred1.resolve();
+	/*directory.visit(visitor, function(err){
+	    
+	    if(!err){
+	      console.log("go");
+	      console.log(items);
+	      Async.doSequentially(items, function (item) {
+		  console.log("here");
+		  FileSystem.resolve(item, function (err, entry) {
+		    if (!err) {
+		      console.log(item);
+			
+			// Change permissions if the item exists
+			chmod(item, "777").then(deferred.resolve, deferred.reject);
+		      } else {
+			  if (err === FileSystemError.NOT_FOUND) {
+			    // Resolve the promise since the item to reset doesn't exist
+			    deferred.resolve();
+			  } else {
+			    deferred.reject();
+			  }
+		      }
+		  });
+		  
+	      });
+	    } else {
+		deferred.reject();
+	    }   
+
 	});
-     
+      */
         //items.push(baseDir + "/cant_read_here");
         //items.push(baseDir + "/cant_write_here");
-	console.log("done2");
-
+	
+	/*
 	promise = Async.doSequentially(items, function (item) {
 	    var deferred = new $.Deferred();
 		
@@ -281,9 +322,44 @@ define(function (require, exports, module) {
 		
 	    return deferred.promise();
 	}, true);
-	
+	*/
         
         return promise;
+    }
+    
+    function _getAllFilesList(path, cb) {
+        var deferred = new $.Deferred();
+        var items = [];
+	
+	var directory = FileSystem.getDirectoryForPath(path + "/"),
+	    visitor = function (entry) {
+			var path = entry.fullPath;
+			
+			var e = entry.isDirectory ? path.slice(0, path.length-1) : path;
+			items.push(e);
+			return true;
+		      };
+	
+	directory.visit(visitor, function(err){
+	    if (err) {
+                deferred.reject(err);
+            } else {
+		cb(items);
+                deferred.resolve();
+            }
+	});
+	
+	
+        /*brackets.fs.chmod(path, parseInt(mode, 8), function (err) {
+            if (err) {
+                deferred.reject(err);
+            } else {
+                deferred.resolve();
+            }
+        });
+	*/
+	
+        return deferred.promise();
     }
     
     /**
